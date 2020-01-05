@@ -1,0 +1,629 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 126,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "from imblearn.over_sampling import SMOTE\n",
+    "from sklearn.preprocessing import LabelEncoder\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 127,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "data = pd.read_csv('data/train.csv')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 128,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Removing data having Duration < 0 as duration is one of important feature ,we dont want bad data in model.\n",
+    "data= data[data['Duration'] >= 0]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 129,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X = data.iloc[:,1:-1]\n",
+    "y = data.Claim"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 130,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Droppping 'Distribution Channel','Agency Type' as their feature importance is low\n",
+    "X = X.drop(['Distribution Channel','Agency Type'],axis=1)  "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 131,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Agency</th>\n",
+       "      <th>Product Name</th>\n",
+       "      <th>Duration</th>\n",
+       "      <th>Destination</th>\n",
+       "      <th>Net Sales</th>\n",
+       "      <th>Commision (in value)</th>\n",
+       "      <th>Age</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <td>0</td>\n",
+       "      <td>7</td>\n",
+       "      <td>10</td>\n",
+       "      <td>61</td>\n",
+       "      <td>68</td>\n",
+       "      <td>12.0</td>\n",
+       "      <td>0.00</td>\n",
+       "      <td>41</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>1</td>\n",
+       "      <td>7</td>\n",
+       "      <td>10</td>\n",
+       "      <td>4</td>\n",
+       "      <td>53</td>\n",
+       "      <td>17.0</td>\n",
+       "      <td>0.00</td>\n",
+       "      <td>35</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>2</td>\n",
+       "      <td>6</td>\n",
+       "      <td>16</td>\n",
+       "      <td>26</td>\n",
+       "      <td>84</td>\n",
+       "      <td>19.8</td>\n",
+       "      <td>11.88</td>\n",
+       "      <td>47</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>3</td>\n",
+       "      <td>7</td>\n",
+       "      <td>1</td>\n",
+       "      <td>15</td>\n",
+       "      <td>33</td>\n",
+       "      <td>27.0</td>\n",
+       "      <td>0.00</td>\n",
+       "      <td>48</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>4</td>\n",
+       "      <td>7</td>\n",
+       "      <td>1</td>\n",
+       "      <td>15</td>\n",
+       "      <td>53</td>\n",
+       "      <td>37.0</td>\n",
+       "      <td>0.00</td>\n",
+       "      <td>36</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "   Agency  Product Name  Duration  Destination  Net Sales  \\\n",
+       "0       7            10        61           68       12.0   \n",
+       "1       7            10         4           53       17.0   \n",
+       "2       6            16        26           84       19.8   \n",
+       "3       7             1        15           33       27.0   \n",
+       "4       7             1        15           53       37.0   \n",
+       "\n",
+       "   Commision (in value)  Age  \n",
+       "0                  0.00   41  \n",
+       "1                  0.00   35  \n",
+       "2                 11.88   47  \n",
+       "3                  0.00   48  \n",
+       "4                  0.00   36  "
+      ]
+     },
+     "execution_count": 131,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "le = LabelEncoder()\n",
+    "def label_encode(col_name,df):\n",
+    "    df[col] = le.fit_transform(df[col])\n",
+    "    \n",
+    "for col in ['Agency','Product Name','Destination']:\n",
+    "    label_encode(col,X)\n",
+    "X.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 132,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Since there is imbalance in target we need to do SMOTE. \n",
+    "# imbalance is 0 >> 43590 and 1 >> 8720\n",
+    "\n",
+    "smt = SMOTE()\n",
+    "X_new, y_new = smt.fit_sample(X, y)\n",
+    "X_new = pd.DataFrame(data=X_new,columns=list(X))\n",
+    "y_new = pd.Series(data=y_new)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 133,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "1    43586\n",
+       "0    43586\n",
+       "Name: Claim, dtype: int64"
+      ]
+     },
+     "execution_count": 133,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "y_new.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 134,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.ensemble import RandomForestClassifier\n",
+    "from sklearn.metrics import accuracy_score,confusion_matrix, classification_report, recall_score,precision_score\n",
+    "from sklearn.model_selection import train_test_split as tts,GridSearchCV"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 135,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X_train,X_test,y_train,y_test = tts(X,y,random_state=43,test_size = 0.25)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 148,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "RandomForestClassifier(bootstrap=True, ccp_alpha=0.0, class_weight='balanced',\n",
+       "                       criterion='gini', max_depth=100, max_features='auto',\n",
+       "                       max_leaf_nodes=None, max_samples=None,\n",
+       "                       min_impurity_decrease=0.0, min_impurity_split=None,\n",
+       "                       min_samples_leaf=1, min_samples_split=2,\n",
+       "                       min_weight_fraction_leaf=0.0, n_estimators=100,\n",
+       "                       n_jobs=None, oob_score=False, random_state=None,\n",
+       "                       verbose=0, warm_start=False)"
+      ]
+     },
+     "execution_count": 148,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "rfc = RandomForestClassifier(max_depth=100,class_weight='balanced')\n",
+    "rfc.fit(X_train,y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 149,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "scores = rfc.feature_importances_"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 150,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>features</th>\n",
+       "      <th>score</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <td>4</td>\n",
+       "      <td>Net Sales</td>\n",
+       "      <td>0.223115</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>2</td>\n",
+       "      <td>Duration</td>\n",
+       "      <td>0.189518</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>0</td>\n",
+       "      <td>Agency</td>\n",
+       "      <td>0.145773</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>5</td>\n",
+       "      <td>Commision (in value)</td>\n",
+       "      <td>0.145111</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>6</td>\n",
+       "      <td>Age</td>\n",
+       "      <td>0.123537</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>3</td>\n",
+       "      <td>Destination</td>\n",
+       "      <td>0.121116</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>1</td>\n",
+       "      <td>Product Name</td>\n",
+       "      <td>0.051831</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "               features     score\n",
+       "4             Net Sales  0.223115\n",
+       "2              Duration  0.189518\n",
+       "0                Agency  0.145773\n",
+       "5  Commision (in value)  0.145111\n",
+       "6                   Age  0.123537\n",
+       "3           Destination  0.121116\n",
+       "1          Product Name  0.051831"
+      ]
+     },
+     "execution_count": 150,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "feature_imp = pd.DataFrame({'features':list(X),'score':scores})\n",
+    "feature_imp.sort_values(['score'],ascending=False)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 151,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "0.9397415309321709"
+      ]
+     },
+     "execution_count": 151,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "y_pred = rfc.predict(X_test)\n",
+    "accuracy_score(y_test,y_pred)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 152,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([[10596,   333],\n",
+       "       [  455,  1693]])"
+      ]
+     },
+     "execution_count": 152,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "confusion_matrix(y_test,y_pred)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 145,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "              precision    recall  f1-score   support\n",
+      "\n",
+      "           0       0.96      0.97      0.96     10929\n",
+      "           1       0.83      0.79      0.81      2148\n",
+      "\n",
+      "    accuracy                           0.94     13077\n",
+      "   macro avg       0.90      0.88      0.89     13077\n",
+      "weighted avg       0.94      0.94      0.94     13077\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(classification_report(y_test,y_pred))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 153,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "              precision    recall  f1-score   support\n",
+      "\n",
+      "           0       0.96      0.97      0.96     10929\n",
+      "           1       0.84      0.79      0.81      2148\n",
+      "\n",
+      "    accuracy                           0.94     13077\n",
+      "   macro avg       0.90      0.88      0.89     13077\n",
+      "weighted avg       0.94      0.94      0.94     13077\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(classification_report(y_test,y_pred))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 157,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "test = pd.read_csv('data/test.csv')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 158,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Agency</th>\n",
+       "      <th>Product Name</th>\n",
+       "      <th>Duration</th>\n",
+       "      <th>Destination</th>\n",
+       "      <th>Net Sales</th>\n",
+       "      <th>Commision (in value)</th>\n",
+       "      <th>Age</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <td>0</td>\n",
+       "      <td>7</td>\n",
+       "      <td>10</td>\n",
+       "      <td>192</td>\n",
+       "      <td>33</td>\n",
+       "      <td>18.0</td>\n",
+       "      <td>0.00</td>\n",
+       "      <td>36</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>1</td>\n",
+       "      <td>7</td>\n",
+       "      <td>0</td>\n",
+       "      <td>2</td>\n",
+       "      <td>75</td>\n",
+       "      <td>20.0</td>\n",
+       "      <td>0.00</td>\n",
+       "      <td>36</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "      <td>9</td>\n",
+       "      <td>13</td>\n",
+       "      <td>75</td>\n",
+       "      <td>13.5</td>\n",
+       "      <td>3.38</td>\n",
+       "      <td>24</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>3</td>\n",
+       "      <td>7</td>\n",
+       "      <td>1</td>\n",
+       "      <td>133</td>\n",
+       "      <td>82</td>\n",
+       "      <td>41.0</td>\n",
+       "      <td>0.00</td>\n",
+       "      <td>36</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>4</td>\n",
+       "      <td>2</td>\n",
+       "      <td>17</td>\n",
+       "      <td>2</td>\n",
+       "      <td>75</td>\n",
+       "      <td>30.0</td>\n",
+       "      <td>7.50</td>\n",
+       "      <td>32</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "   Agency  Product Name  Duration  Destination  Net Sales  \\\n",
+       "0       7            10       192           33       18.0   \n",
+       "1       7             0         2           75       20.0   \n",
+       "2       2             9        13           75       13.5   \n",
+       "3       7             1       133           82       41.0   \n",
+       "4       2            17         2           75       30.0   \n",
+       "\n",
+       "   Commision (in value)  Age  \n",
+       "0                  0.00   36  \n",
+       "1                  0.00   36  \n",
+       "2                  3.38   24  \n",
+       "3                  0.00   36  \n",
+       "4                  7.50   32  "
+      ]
+     },
+     "execution_count": 158,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "test = test.drop(['ID','Distribution Channel','Agency Type'],axis=1) \n",
+    "for col in ['Agency','Product Name','Destination']:\n",
+    "    label_encode(col,test)\n",
+    "test.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 161,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/Library/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site-packages/ipykernel_launcher.py:4: FutureWarning: The signature of `Series.to_csv` was aligned to that of `DataFrame.to_csv`, and argument 'header' will change its default value from False to True: please pass an explicit value to suppress this warning.\n",
+      "  after removing the cwd from sys.path.\n"
+     ]
+    }
+   ],
+   "source": [
+    "predicted_data = rfc.predict(test)\n",
+    "\n",
+    "ser= pd.Series(predicted_data,index=test.index)\n",
+    "ser.to_csv('validation')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
